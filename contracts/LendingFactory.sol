@@ -7,34 +7,23 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./Lending.sol";
+import "./Receipt.sol";
 
-contract LendingFactory {
+contract LendingFactory is Receipt {
     
-    struct Receipt {
-        address originalOwner;
-        address currentOwner;
-        ERC721 NFTAddress;
-        uint256 tokenId;
-        ERC20 ERC20Address;
-        uint256 ERC20Amount;
-        uint256 ERC20Rate;
-        uint256 amountOfTime;
-        uint256 deadLine;
-    }
-
     mapping(address => address) public registerAddresses;
 
     using Counters for Counters.Counter;
     Counters.Counter requestNumber;
 
-    mapping(uint256 => Receipt) public receiptBook;
+    mapping(uint256 => ReceiptDetail) public receiptBook;
 
     function LenderMakeRequest(ERC721 NFTAddress, 
         uint256 tokenId, ERC20 ERC20Address,
         uint256 ERC20Amount, uint256 ERC20Rate, 
         uint256 amountOfTime) public {
 
-        receiptBook[Counters.current(requestNumber)] = Receipt(
+        receiptBook[Counters.current(requestNumber)] = ReceiptDetail(
             msg.sender,
             address(0),
             NFTAddress,
@@ -50,20 +39,19 @@ contract LendingFactory {
 
     function StakeHolderAcceptRequest(uint256 _requestNumber) public {
         
-        Receipt storage rp = receiptBook[_requestNumber];
-        address tmpAddress = registerAddresses[msg.sender];
-        rp.currentOwner = msg.sender;
-        rp.deadLine = block.timestamp + rp.amountOfTime;
+        ReceiptDetail storage rd = receiptBook[_requestNumber];
+        address registerAddress = registerAddresses[msg.sender];
+        rd.currentOwner = msg.sender;
+        rd.deadLine = block.timestamp + rd.amountOfTime;
 
-        ERC20 token = rp.ERC20Address;
-        ERC721 NFT = rp.NFTAddress;
+        ERC20 token = rd.ERC20Address;
+        ERC721 NFT = rd.NFTAddress;
 
-        token.transferFrom(msg.sender, rp.originalOwner, rp.ERC20Amount);
-        NFT.transferFrom(rp.originalOwner, tmpAddress, rp.tokenId);
+        token.transferFrom(msg.sender, rd.originalOwner, rd.ERC20Amount);
+        NFT.transferFrom(rd.originalOwner, registerAddress, rd.tokenId);
 
-
-
-
+        Lending ld = Lending(registerAddress);
+        ld.updateMyReceiptBook(_requestNumber, rd);
     }
 
     function RegisterLendingContract() public {
