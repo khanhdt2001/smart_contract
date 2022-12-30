@@ -55,8 +55,7 @@ contract LendingFactory is Receipt {
     }
 
     function RegisterLendingContract() public {
-        Lending ld = new Lending();
+        Lending ld = new Lending(msg.sender);
         registerAddresses[msg.sender] = address(ld);
-        ld.transferOwnership(msg.sender);
     }
 }

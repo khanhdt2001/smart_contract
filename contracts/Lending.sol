@@ -10,9 +10,21 @@ import "./Receipt.sol";
 
 contract Lending is Ownable, Receipt {
     
+    address public creater;
     mapping(uint256 => ReceiptDetail) public myReceiptBook;
+    
+    modifier onlyCreater() {
+        require(msg.sender == creater);
+        _;
+    }
 
-    function updateMyReceiptBook(uint256 _requestNumber, ReceiptDetail calldata rd) public {
+    constructor(address newOwner) {
+        creater = msg.sender;
+        transferOwnership(newOwner);
+    }
+
+    function updateMyReceiptBook(uint256 _requestNumber, 
+        ReceiptDetail calldata rd) onlyCreater public {
         myReceiptBook[_requestNumber] = rd;
     }
 
