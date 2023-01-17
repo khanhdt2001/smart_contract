@@ -8,17 +8,20 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./Lending.sol";
 import "./Receipt.sol";
+import "./Offer.sol";
 
-contract LendingFactory is Receipt {
+contract LendingFactory is Receipt, Offer {
     
     mapping(address => address) public registerAddresses;
 
     using Counters for Counters.Counter;
     Counters.Counter requestNumber;
-
+    Counters.Counter offerNumber;
     mapping(uint256 => ReceiptDetail) public receiptBook;
 
-    function LenderMakeRequest(ERC721 NFTAddress, 
+    mapping(uint256 => mapping(uint=>OfferDetail)) public offerBook;
+
+    function VendorMakeRequest(ERC721 NFTAddress, 
         uint256 tokenId, ERC20 ERC20Address,
         uint256 ERC20Amount, uint256 ERC20Rate, 
         uint256 amountOfTime) public {
@@ -35,6 +38,16 @@ contract LendingFactory is Receipt {
             0
         );
         Counters.increment(requestNumber);
+    }
+
+    function LendorMakeOffer(uint256 _requestNumber, uint256 _offerERC20Amount, 
+    // 
+        uint256 _offerAmountOfTime) public {
+            offerBook[_requestNumber][Counters.current(offerNumber)] = OfferDetail(
+                _offerERC20Amount,
+                _offerAmountOfTime
+            );
+        // todo: update lại logic lấy số của 1 request 
     }
 
     function StakeHolderAcceptRequest(uint256 _requestNumber) public {
