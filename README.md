@@ -11,3 +11,6 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat run scripts/deploy.js
 ```
+
+* update logic theo những gì đã vẽ về luồng hoạt động theo đầu bài của thầy cho 
+* đẩy nhanh tiến độ code để tuần sau có thể test đc contract
