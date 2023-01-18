@@ -4,8 +4,9 @@ pragma solidity ^0.8.9;
 interface Offer {
     
     struct OfferDetail {
-        uint256 offerERC20Amount;
-        uint256 offerAmountOfTime;
+        address lender;
+        uint256 offerTokenAmount;
+        uint256 offerRate;
     }
     
 }
