@@ -11,7 +11,6 @@ import "./Receipt.sol";
 contract Lending is Ownable, Receipt {
     
     address public creater;
-    mapping(uint256 => ReceiptDetail) public myReceiptBook;
     
     modifier onlyCreater() {
         require(msg.sender == creater);
@@ -19,20 +18,19 @@ contract Lending is Ownable, Receipt {
     }
 
     constructor(address newOwner) {
-        creater = msg.sender;
-        transferOwnership(newOwner);
+        creater = newOwner;
     }
 
-    function updateMyReceiptBook(uint256 _requestNumber, 
-        ReceiptDetail calldata rd) onlyCreater public {
-        myReceiptBook[_requestNumber] = rd;
+    function vendorRedeem(uint256 _requestNumber) onlyOwner public {
+        //  lấy ra offer theo quest number
+        //  check điều kiện 
+        //  chuyển nft về cho vendor 
     }
 
 
-    function claimNFT(uint256 _requestNumber) onlyOwner public {
-        ReceiptDetail memory rd = myReceiptBook[_requestNumber];
-        ERC721 NFT = rd.NFTAddress;
-        NFT.transferFrom(address(this), owner(), rd.tokenId);
+
+    function withDraw(uint256 _requestNumber) onlyOwner public {
+
     }
 
 

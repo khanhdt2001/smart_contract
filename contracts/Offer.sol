@@ -4,7 +4,7 @@ pragma solidity ^0.8.9;
 interface Offer {
     
     struct OfferDetail {
-        address lender;
+        address payable lender;
         uint256 offerTokenAmount;
         uint256 offerRate;
     }
