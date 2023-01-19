@@ -18,7 +18,7 @@ contract LendingFactory is Receipt, Offer {
 
     mapping(address => address) public registerAddresses;
     mapping(uint256 => ReceiptDetail) public receiptBook;
-    mapping(uint256 => mapping(uint=>OfferDetail)) public offerBook;
+    mapping(uint256 => mapping(uint256=>OfferDetail)) public offerBook;
     mapping(uint256 => uint256) public offerOrder;
     mapping(address => bool) public registerERC721;
 
@@ -27,6 +27,13 @@ contract LendingFactory is Receipt, Offer {
         _;
     }
 
+    function getReceiptBook(uint256 _requestNumber) public view returns(ReceiptDetail memory) {
+        return receiptBook[_requestNumber];
+    }
+
+    function getOfferBook(uint256 _requestNumber ,uint256 _offerNumber) public view returns(OfferDetail memory) {
+        return offerBook[_requestNumber][_offerNumber];
+    }
 
     function VendorMakeRequest(
         ERC721 NFTAddress,
@@ -81,7 +88,8 @@ contract LendingFactory is Receipt, Offer {
     function VendorRedeem(uint256 _requestNumber) public {
         ReceiptDetail memory rd = receiptBook[_requestNumber];
         // check condition
-
+        uint256 tokenMustPaid = rd.tokenAmount * (1 + rd.tokenRate);
+        payable(msg.sender).transfer(tokenMustPaid);
         Lending ld = Lending(rd.lender);
         ld.vendorRedeem(_requestNumber);
     }

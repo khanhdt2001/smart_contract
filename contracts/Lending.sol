@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./Receipt.sol";
+import "./LendingFactory.sol";
 
 contract Lending is Ownable, Receipt {
     
@@ -22,14 +23,22 @@ contract Lending is Ownable, Receipt {
     }
 
     function vendorRedeem(uint256 _requestNumber) onlyOwner public {
+
         //  lấy ra offer theo quest number
+        LendingFactory ld = LendingFactory(msg.sender);
+        ReceiptDetail memory rd = ld.getReceiptBook(_requestNumber);
+
         //  check điều kiện 
+
         //  chuyển nft về cho vendor 
+        ERC721 nft= ERC721(rd.NFTAddress);
+        nft.transferFrom(address(this), rd.vendor, rd.tokenId);
+        
     }
 
 
 
-    function withDraw(uint256 _requestNumber) onlyOwner public {
+    function lenderwithDraw(uint256 _requestNumber) onlyOwner public {
 
     }
 
