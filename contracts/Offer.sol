@@ -7,6 +7,7 @@ interface Offer {
         address payable lender;
         uint256 offerTokenAmount;
         uint256 offerRate;
+        uint256 offerAmountOfTime;
     }
     
 }

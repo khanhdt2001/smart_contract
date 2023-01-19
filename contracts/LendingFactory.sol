@@ -22,6 +22,33 @@ contract LendingFactory is Receipt, Offer {
     mapping(uint256 => uint256) public offerOrder;
     mapping(address => bool) public registerERC721;
 
+    event VendorMakeRequest(
+        address vendor,
+        address lender,
+        ERC721 NFTAddress,
+        uint256 tokenId,
+        uint256 tokenAmount,
+        uint256 tokenRate,
+        uint256 amountOfTime,
+        uint256 deadLine
+        );
+    event LenderMakeOffer(
+        address payable lender,
+        uint256 offerTokenAmount,
+        uint256 offerRate
+    );
+    event VendorAcceptOffer(
+        address vendor,
+        address lender,
+        ERC721 NFTAddress,
+        uint256 tokenId,
+        uint256 tokenAmount,
+        uint256 tokenRate,
+        uint256 amountOfTime,
+        uint256 deadLine
+    );
+    event VendorReddem();
+
     modifier onlyRegistered() {
         require(registerAddresses[msg.sender] != address(0), "Lender must registered");
         _;
@@ -35,12 +62,9 @@ contract LendingFactory is Receipt, Offer {
         return offerBook[_requestNumber][_offerNumber];
     }
 
-    function VendorMakeRequest(
+    function vendorMakeRequest(
         ERC721 NFTAddress,
-        uint256 tokenId,
-        uint256 tokenAmount,
-        uint256 tokenRate,
-        uint256 amountOfTime) public {
+        uint256 tokenId) public {
 
         require(NFTAddress.ownerOf(tokenId) == msg.sender,
             "Lending: sender must have NFT");
@@ -50,28 +74,30 @@ contract LendingFactory is Receipt, Offer {
             address(0),
             NFTAddress,
             tokenId,
-            tokenAmount,
-            tokenRate,
-            amountOfTime,
+            0,
+            0,
+            0,
             0
         );
         Counters.increment(requestNumber);
+        emit VendorMakeRequest(msg.sender, address(0), NFTAddress, tokenId, 0, 0, 0, 0);
     }
 
-    function LenderMakeOffer(uint256 _requestNumber, uint256 _offerTokenAmount,
-        uint256 _offerRate) onlyRegistered() public  {
+    function lenderMakeOffer(uint256 _requestNumber, uint256 _offerTokenAmount,
+        uint256 _offerRate, uint _amountOfTime) onlyRegistered() public  {
             uint256 currentOffer = offerOrder[_requestNumber];
 
             offerBook[_requestNumber][currentOffer] = OfferDetail(
                 payable(msg.sender),
                 _offerTokenAmount,
-                _offerRate
+                _offerRate,
+                _amountOfTime
             );
             offerOrder[_requestNumber] += 1;
-      
+        emit LenderMakeOffer( payable(msg.sender), _offerTokenAmount, _offerRate);
     }
 
-    function VendorAcceptOffer(uint256 _requestNumber, uint256 _offerNumber) public {
+    function vendorAcceptOffer(uint256 _requestNumber, uint256 _offerNumber) public {
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         OfferDetail memory od = offerBook[_requestNumber][_offerNumber];
         address registerAddress = registerAddresses[od.lender];
@@ -79,22 +105,25 @@ contract LendingFactory is Receipt, Offer {
         rd.lender = od.lender;
         rd.tokenAmount = od.offerTokenAmount;
         rd.tokenRate = od.offerRate;
+        rd.amountOfTime = od.offerAmountOfTime;
+        rd.deadLine = block.timestamp + od.offerAmountOfTime;
 
         ERC721 NFT = rd.NFTAddress;
         NFT.transferFrom(rd.vendor, registerAddress, rd.tokenId);
         od.lender.transfer(od.offerTokenAmount);
+        emit VendorAcceptOffer(rd.vendor, rd.lender, rd.NFTAddress, rd.tokenId, rd.tokenAmount, rd.tokenRate, rd.amountOfTime, rd.deadLine);
     }
 
-    function VendorRedeem(uint256 _requestNumber) public {
+    function vendorRedeem(uint256 _requestNumber) public {
         ReceiptDetail memory rd = receiptBook[_requestNumber];
         // check condition
         uint256 tokenMustPaid = rd.tokenAmount * (1 + rd.tokenRate);
         payable(msg.sender).transfer(tokenMustPaid);
         Lending ld = Lending(rd.lender);
-        ld.vendorRedeem(_requestNumber);
+        ld.withDrawNFT(_requestNumber, rd.vendor);
     }
 
-    function RegisterLendingContract() public {
+    function registerLendingContract() public {
         Lending ld = new Lending(msg.sender);
         registerAddresses[msg.sender] = address(ld);
     }
