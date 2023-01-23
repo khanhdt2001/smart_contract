@@ -6,13 +6,13 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 
-contract SampleA is ERC721, Ownable {
+contract SampleNFT is ERC721, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter tokenId; // số thự tự của request
     using Strings for uint256;
     string private _baseURIextended;
 
-    constructor() ERC721("SampleA", "SPA") Ownable() {}
+    constructor() ERC721("SampleNFT", "SPN") Ownable() {}
 
     function setBaseURI(string memory baseURI_) external onlyOwner {
         _baseURIextended = baseURI_;
