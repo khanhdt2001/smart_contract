@@ -6,7 +6,7 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "./Lending.sol";
+import "./LendingBank.sol";
 import "./Receipt.sol";
 import "./Offer.sol";
 
@@ -15,12 +15,18 @@ contract LendingFactory is Receipt, Offer {
 
     using Counters for Counters.Counter;
     Counters.Counter requestNumber;
-
-    mapping(address => address) public registerAddresses;
+    address public lendingBank;
+    mapping(address => bool) public registerAddresses;
+    mapping(address => bool) public registerNFTs;
     mapping(uint256 => ReceiptDetail) public receiptBook;
     mapping(uint256 => mapping(uint256=>OfferDetail)) public offerBook;
     mapping(uint256 => uint256) public offerOrder;
     mapping(address => bool) public registerERC721;
+
+    constructor() {
+        LendingBank ld = new LendingBank();
+        lendingBank = address(ld);
+    }
 
     event VendorMakeRequest(
         address vendor,
@@ -50,7 +56,7 @@ contract LendingFactory is Receipt, Offer {
     event VendorReddem();
 
     modifier onlyRegistered() {
-        require(registerAddresses[msg.sender] != address(0), "Lender must registered");
+        require(registerAddresses[msg.sender] != false, "Lender must registered");
         _;
     }
 
@@ -100,7 +106,7 @@ contract LendingFactory is Receipt, Offer {
     function vendorAcceptOffer(uint256 _requestNumber, uint256 _offerNumber) public {
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         OfferDetail memory od = offerBook[_requestNumber][_offerNumber];
-        address registerAddress = registerAddresses[od.lender];
+        // address registerAddress = registerAddresses[od.lender];
 
         rd.lender = od.lender;
         rd.tokenAmount = od.offerTokenAmount;
@@ -109,7 +115,7 @@ contract LendingFactory is Receipt, Offer {
         rd.deadLine = block.timestamp + od.offerAmountOfTime;
 
         ERC721 NFT = rd.NFTAddress;
-        NFT.transferFrom(rd.vendor, registerAddress, rd.tokenId);
+        NFT.transferFrom(rd.vendor, lendingBank, rd.tokenId);
         od.lender.transfer(od.offerTokenAmount);
         emit VendorAcceptOffer(rd.vendor, rd.lender, rd.NFTAddress, rd.tokenId, rd.tokenAmount, rd.tokenRate, rd.amountOfTime, rd.deadLine);
     }
@@ -119,12 +125,12 @@ contract LendingFactory is Receipt, Offer {
         // check condition
         uint256 tokenMustPaid = rd.tokenAmount * (1 + rd.tokenRate);
         payable(msg.sender).transfer(tokenMustPaid);
-        Lending ld = Lending(rd.lender);
+        LendingBank ld = LendingBank(rd.lender);
         ld.withDrawNFT(_requestNumber, rd.vendor);
     }
 
-    function registerLendingContract() public {
-        Lending ld = new Lending(msg.sender);
-        registerAddresses[msg.sender] = address(ld);
+    function registerLending() public {
+        require(registerAddresses[msg.sender] == false, "Already registor");
+        registerAddresses[msg.sender] = true;
     }
 }

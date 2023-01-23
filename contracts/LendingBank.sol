@@ -9,18 +9,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./Receipt.sol";
 import "./LendingFactory.sol";
 
-contract Lending is Ownable, Receipt {
+contract LendingBank is Ownable, Receipt {
     
-    address public creater;
-    
-    modifier onlyCreater() {
-        require(msg.sender == creater);
-        _;
-    }
-
-    constructor(address newOwner) {
-        creater = newOwner;
-    }
 
     event WithDrawNFT(uint256 _requestNumber,address _reciever);
 
@@ -36,8 +26,7 @@ contract Lending is Ownable, Receipt {
     }
 
 
-
-    function withDrawNFT(uint256 _requestNumber, address _reciever) onlyOwner public {
+    function withdrawNFT(uint256 _requestNumber, address _reciever) onlyOwner public {
         LendingFactory ld = LendingFactory(msg.sender);
         ReceiptDetail memory rd = ld.getReceiptBook(_requestNumber);
         //  check điều kiện 
