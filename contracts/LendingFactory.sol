@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 
 // import "hardhat/console.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
@@ -10,7 +11,7 @@ import "./LendingBank.sol";
 import "./Receipt.sol";
 import "./Offer.sol";
 
-contract LendingFactory is Receipt, Offer {
+contract LendingFactory is Receipt, Offer, Ownable {
     
 
     using Counters for Counters.Counter;
@@ -23,7 +24,7 @@ contract LendingFactory is Receipt, Offer {
     mapping(uint256 => uint256) public offerOrder;
     mapping(address => bool) public registerERC721;
 
-    constructor() {
+    constructor() Ownable() {
         LendingBank ld = new LendingBank();
         lendingBank = address(ld);
     }
@@ -32,11 +33,7 @@ contract LendingFactory is Receipt, Offer {
         address vendor,
         address lender,
         ERC721 NFTAddress,
-        uint256 tokenId,
-        uint256 tokenAmount,
-        uint256 tokenRate,
-        uint256 amountOfTime,
-        uint256 deadLine
+        uint256 tokenId
         );
     event LenderMakeOffer(
         address payable lender,
@@ -53,7 +50,9 @@ contract LendingFactory is Receipt, Offer {
         uint256 amountOfTime,
         uint256 deadLine
     );
-    event VendorReddem();
+    event VendorReddem(uint256 requestNumber);
+    event VendorExtend(uint256 requestNumber, uint256 deadLine);
+
 
     modifier onlyRegistered() {
         require(registerAddresses[msg.sender] != false, "Lender must registered");
@@ -83,14 +82,15 @@ contract LendingFactory is Receipt, Offer {
             0,
             0,
             0,
+            0,
             0
         );
         Counters.increment(requestNumber);
-        emit VendorMakeRequest(msg.sender, address(0), NFTAddress, tokenId, 0, 0, 0, 0);
+        emit VendorMakeRequest(msg.sender, address(0), NFTAddress, tokenId);
     }
 
     function lenderMakeOffer(uint256 _requestNumber, uint256 _offerTokenAmount,
-        uint256 _offerRate, uint _amountOfTime) onlyRegistered() public  {
+        uint256 _offerRate, uint _amountOfTime) onlyRegistered() public {
             uint256 currentOffer = offerOrder[_requestNumber];
 
             offerBook[_requestNumber][currentOffer] = OfferDetail(
@@ -106,7 +106,6 @@ contract LendingFactory is Receipt, Offer {
     function vendorAcceptOffer(uint256 _requestNumber, uint256 _offerNumber) public {
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         OfferDetail memory od = offerBook[_requestNumber][_offerNumber];
-        // address registerAddress = registerAddresses[od.lender];
 
         rd.lender = od.lender;
         rd.tokenAmount = od.offerTokenAmount;
@@ -120,17 +119,40 @@ contract LendingFactory is Receipt, Offer {
         emit VendorAcceptOffer(rd.vendor, rd.lender, rd.NFTAddress, rd.tokenId, rd.tokenAmount, rd.tokenRate, rd.amountOfTime, rd.deadLine);
     }
 
+/*
+calculate method:
+A borrow B 100 mil with rate 12% per 12 months
+1 month interest        = (100 mil * 12%) /12 = 1.000.000
+A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333   
+*/
+
+    function vendorPayRountine(uint256 _requestNumber) public {
+        ReceiptDetail storage rd = receiptBook[_requestNumber];
+        uint256 tokenMustPaid = (rd.tokenAmount * rd.tokenRate/100) ;
+        payable(msg.sender).transfer(tokenMustPaid);
+        rd.deadLine = rd.deadLine + rd.amountOfTime;
+        emit VendorExtend(_requestNumber, rd.deadLine);
+    }
+
     function vendorRedeem(uint256 _requestNumber) public {
         ReceiptDetail memory rd = receiptBook[_requestNumber];
         // check condition
         uint256 tokenMustPaid = rd.tokenAmount * (1 + rd.tokenRate);
         payable(msg.sender).transfer(tokenMustPaid);
         LendingBank ld = LendingBank(rd.lender);
-        ld.withDrawNFT(_requestNumber, rd.vendor);
+        ld.withdrawNFT(_requestNumber, rd.vendor);
+        emit VendorReddem(_requestNumber);
     }
 
     function registerLending() public {
-        require(registerAddresses[msg.sender] == false, "Already registor");
+        require(registerAddresses[msg.sender] != true, "Already registor");
         registerAddresses[msg.sender] = true;
+        // emit event
+    }
+
+    function registerNFT(ERC721 _NFTAddress) onlyOwner public {
+        require(registerNFTs[address(_NFTAddress)] != true, "Already registor");
+        registerNFTs[address(_NFTAddress)] = true;
+        // emit event
     }
 }

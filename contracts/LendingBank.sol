@@ -14,35 +14,12 @@ contract LendingBank is Ownable, Receipt {
 
     event WithDrawNFT(uint256 _requestNumber,address _reciever);
 
-    function vendorRedeem(uint256 _requestNumber) onlyOwner public {
-        //  lấy ra offer theo quest number
-        LendingFactory ld = LendingFactory(msg.sender);
-        ReceiptDetail memory rd = ld.getReceiptBook(_requestNumber);
-        //  check điều kiện 
-        //  chuyển nft về cho vendor 
-        ERC721 nft= ERC721(rd.NFTAddress);
-        nft.transferFrom(address(this), rd.vendor, rd.tokenId);
-
-    }
-
-
     function withdrawNFT(uint256 _requestNumber, address _reciever) onlyOwner public {
         LendingFactory ld = LendingFactory(msg.sender);
         ReceiptDetail memory rd = ld.getReceiptBook(_requestNumber);
-        //  check điều kiện 
-        //  chuyển nft về cho vendor 
         ERC721 nft= ERC721(rd.NFTAddress);
         nft.transferFrom(address(this), _reciever, rd.tokenId);
         emit WithDrawNFT(_requestNumber, _reciever);
     }
-
-
-
-
-
-
-
-
-
     
 }
