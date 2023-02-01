@@ -19,15 +19,16 @@ describe("LendingFactory", function () {
       lendingFactory = await ContractLendingFactory.deploy();
       await lendingFactory.deployed();
 
-      contractNft = await ContractNft.deploy();
-      await contractNft.deployed();
+      Nft = await ContractNft.deploy();
+      await Nft.deployed();
 
       // mint 4 nft for adr1
 
-      contractNft.mint(address1);
-      contractNft.mint(address1);
-      contractNft.mint(address1);
-      contractNft.mint(address1);
+      await Nft.mint(address1.address);
+      await Nft.mint(address1.address);
+      await Nft.mint(address1.address);
+      await Nft.mint(address1.address);
+      await Nft.mint(address2.address);
    });
    // Testing
    describe("registerLending", () => {
@@ -48,8 +49,54 @@ describe("LendingFactory", function () {
    describe("registerNFT", () => {
       it("fail", async () => {
          await expect(
-            lendingFactory.connect(address1).registerNFT(contractNft.address)
+            lendingFactory.connect(address1).registerNFT(Nft.address)
          ).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+      it("fail", async () => {
+         await lendingFactory.registerNFT(Nft.address);
+         await expect(
+            lendingFactory.registerNFT(Nft.address)
+         ).to.be.revertedWith("Already registor");
+      });
+      it("success", async () => {
+         const res = await lendingFactory.registerNFT(Nft.address);
+         await expect(res)
+            .to.emit(lendingFactory, "RegisterNFT")
+            .withArgs(Nft.address);
+      });
+   });
+
+   const setUpForVendorMakeRequest = async () => {
+      await lendingFactory.registerNFT(Nft.address);
+      await lendingFactory.connect(address1).registerLending();
+   };
+
+   describe("vendorMakeRequest", () => {
+      it("fail", async () => {
+         await expect(
+            lendingFactory.connect(address1).vendorMakeRequest(Nft.address, 5)
+         ).to.be.revertedWith("Address must be registered");
+      });
+      it("fail", async () => {
+         await setUpForVendorMakeRequest();
+         await expect(
+            lendingFactory.connect(address1).vendorMakeRequest(Nft.address, 5)
+         ).to.be.revertedWith("ERC721: invalid token ID");
+      });
+      it("fail", async () => {
+         await setUpForVendorMakeRequest();
+         await expect(
+            lendingFactory.connect(address1).vendorMakeRequest(Nft.address, 4)
+         ).to.be.revertedWith("Lending: sender must have NFT");
+      });
+      it("success", async () => {
+         await setUpForVendorMakeRequest();
+         const res = await lendingFactory
+            .connect(address1)
+            .vendorMakeRequest(Nft.address, 1);
+         await expect(res)
+            .to.be.emit(lendingFactory, "VendorMakeRequest")
+            .withArgs(address1.address, Nft.address, 1);
       });
    });
 });

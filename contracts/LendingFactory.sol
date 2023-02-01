@@ -31,7 +31,6 @@ contract LendingFactory is Receipt, Offer, Ownable {
 
     event VendorMakeRequest(
         address vendor,
-        address lender,
         ERC721 NFTAddress,
         uint256 tokenId
         );
@@ -57,7 +56,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
 
 
     modifier onlyRegistered() {
-        require(registerAddresses[msg.sender] != false, "Lender must registered");
+        require(registerAddresses[msg.sender] != false, "Address must be registered");
         _;
     }
 
@@ -71,7 +70,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
 
     function vendorMakeRequest(
         ERC721 NFTAddress,
-        uint256 tokenId) public {
+        uint256 tokenId) public onlyRegistered() {
 
         require(NFTAddress.ownerOf(tokenId) == msg.sender,
             "Lending: sender must have NFT");
@@ -88,13 +87,14 @@ contract LendingFactory is Receipt, Offer, Ownable {
             0
         );
         Counters.increment(requestNumber);
-        emit VendorMakeRequest(msg.sender, address(0), NFTAddress, tokenId);
+        emit VendorMakeRequest(msg.sender, NFTAddress, tokenId);
     }
 
     function lenderMakeOffer(uint256 _requestNumber, uint256 _offerTokenAmount,
         uint256 _offerRate, uint _amountOfTime) onlyRegistered() public {
             uint256 currentOffer = offerOrder[_requestNumber];
-
+    //  check xem cai request nay co du lieu hay chua 
+    
             offerBook[_requestNumber][currentOffer] = OfferDetail(
                 payable(msg.sender),
                 _offerTokenAmount,
@@ -148,16 +148,13 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
 
     function registerLending() public {
         require(registerAddresses[msg.sender] != true, "Already registor");
-        registerAddresses[msg.sender] = true;
-        // emit event
-        
+        registerAddresses[msg.sender] = true;       
         emit RegisterLending(msg.sender);
     }
 
     function registerNFT(ERC721 _NFTAddress) onlyOwner public {
         require(registerNFTs[address(_NFTAddress)] != true, "Already registor");
         registerNFTs[address(_NFTAddress)] = true;
-        // emit event
         emit RegisterNFT(address(_NFTAddress));
     }
 }
