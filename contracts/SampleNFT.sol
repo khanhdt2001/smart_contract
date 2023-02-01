@@ -20,8 +20,8 @@ contract SampleNFT is ERC721, Ownable {
     function getBaseURI() public view returns (string memory) {
         return _baseURIextended;
     }
-    function mint() public onlyOwner {
-        _safeMint(msg.sender, Counters.current(tokenId));
+    function mint(address _receiver) public onlyOwner {
+        _safeMint(_receiver, Counters.current(tokenId));
         Counters.increment(tokenId);
     }
     function tokenURI(uint256 _tokenID) public override view returns (string memory) {

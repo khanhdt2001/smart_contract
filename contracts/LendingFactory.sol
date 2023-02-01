@@ -2,7 +2,7 @@
 pragma solidity ^0.8.9;
 
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -52,6 +52,8 @@ contract LendingFactory is Receipt, Offer, Ownable {
     );
     event VendorReddem(uint256 requestNumber);
     event VendorExtend(uint256 requestNumber, uint256 deadLine);
+    event RegisterLending(address _address);
+    event RegisterNFT(address NFTAddress);
 
 
     modifier onlyRegistered() {
@@ -148,11 +150,14 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         require(registerAddresses[msg.sender] != true, "Already registor");
         registerAddresses[msg.sender] = true;
         // emit event
+        
+        emit RegisterLending(msg.sender);
     }
 
     function registerNFT(ERC721 _NFTAddress) onlyOwner public {
         require(registerNFTs[address(_NFTAddress)] != true, "Already registor");
         registerNFTs[address(_NFTAddress)] = true;
         // emit event
+        emit RegisterNFT(address(_NFTAddress));
     }
 }
