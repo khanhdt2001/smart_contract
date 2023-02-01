@@ -31,9 +31,25 @@ describe("LendingFactory", function () {
    });
    // Testing
    describe("registerLending", () => {
+      it("fail", async () => {
+         await lendingFactory.connect(address2).registerLending();
+         await expect(
+            lendingFactory.connect(address2).registerLending()
+         ).to.be.revertedWith("Already registor");
+      });
       it("successfully", async () => {
          const res = await lendingFactory.connect(address2).registerLending();
-         await expect(res).to.emit(lendingFactory, "RegisterLending").withArgs(address2.address)
+         await expect(res)
+            .to.emit(lendingFactory, "RegisterLending")
+            .withArgs(address2.address);
+      });
+   });
+
+   describe("registerNFT", () => {
+      it("fail", async () => {
+         await expect(
+            lendingFactory.connect(address1).registerNFT(contractNft.address)
+         ).to.be.revertedWith("Ownable: caller is not the owner");
       });
    });
 });
