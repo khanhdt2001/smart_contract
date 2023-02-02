@@ -99,4 +99,39 @@ describe("LendingFactory", function () {
             .withArgs(address1.address, Nft.address, 1);
       });
    });
+
+   const setUpLenderMakeOffer = async () => {
+      await setUpForVendorMakeRequest();
+      await lendingFactory.connect(address2).registerLending();
+      await lendingFactory.connect(address1).vendorMakeRequest(Nft.address, 1);
+   };
+
+   describe("lenderMakeOffer", () => {
+      it("fail", async () => {
+         await expect(
+            lendingFactory.connect(address2).lenderMakeOffer(1, 10, 12, 3600)
+         ).to.be.revertedWith("Address must be registered");
+      });
+      it("fail", async () => {
+         await setUpLenderMakeOffer();
+         await expect(
+            lendingFactory.connect(address2).lenderMakeOffer(1, 10, 12, 3600)
+         ).to.be.revertedWith("Lending: receipt must exist");
+      });
+      it("success", async () => {
+         await setUpLenderMakeOffer();
+         const res = await lendingFactory
+            .connect(address2)
+            .lenderMakeOffer(0, 10, 12, 3600);
+         await expect(res)
+            .to.be.emit(lendingFactory, "LenderMakeOffer")
+            .withArgs(address2.address, 0, 10, 12, 3600);
+      });
+   });
+
+   describe("vendorAcceptOffer", () => {
+      it("fail", async () => {
+         
+      })
+   });
 });
