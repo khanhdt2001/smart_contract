@@ -30,19 +30,14 @@ contract LendingFactory is Receipt, Offer, Ownable {
     event LenderMakeOffer(
         address payable lender,
         uint256 requestNumber,
+        uint256 offerNumber,
         uint256 offerTokenAmount,
         uint256 offerRate,
         uint256 offerAmountOfTime
     );
     event VendorAcceptOffer(
-        address vendor,
-        address lender,
-        ERC721 NFTAddress,
-        uint256 tokenId,
-        uint256 tokenAmount,
-        uint256 tokenRate,
-        uint256 amountOfTime,
-        uint256 deadLine
+        uint256 requestNumber,
+        uint256 offerNumber
     );
     event VendorReddem(uint256 requestNumber);
     event VendorExtend(uint256 requestNumber, uint256 deadLine);
@@ -53,6 +48,13 @@ contract LendingFactory is Receipt, Offer, Ownable {
         require(
             registerAddresses[msg.sender] != false,
             "Address must be registered"
+        );
+        _;
+    }
+    modifier onlyVendor(uint256 _requestNumber) {
+        require(
+            receiptBook[_requestNumber].vendor == msg.sender,
+            "Lending: Must be Vendor"
         );
         _;
     }
@@ -119,6 +121,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
         emit LenderMakeOffer(
             payable(msg.sender),
             _requestNumber,
+            currentOffer,
             _offerTokenAmount,
             _offerRate,
             _amountOfTime
@@ -126,12 +129,10 @@ contract LendingFactory is Receipt, Offer, Ownable {
     }
 
     function vendorAcceptOffer(uint256 _requestNumber, uint256 _offerNumber)
-        public
+        public onlyRegistered onlyVendor(_requestNumber)
     {
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         OfferDetail memory od = offerBook[_requestNumber][_offerNumber];
-        // check rd and od exist
-        require(rd.vendor != address(0), "Lending: receipt must exist");
         require(od.lender != address(0), "Lending: offer must exist");
 
         rd.lender = od.lender;
@@ -142,16 +143,12 @@ contract LendingFactory is Receipt, Offer, Ownable {
 
         ERC721 NFT = rd.NFTAddress;
         NFT.transferFrom(rd.vendor, lendingBank, rd.tokenId);
-        od.lender.transfer(od.offerTokenAmount);
+        console.log(od.lender);
+        console.log(od.offerTokenAmount);
+        od.lender.call{value: od.offerTokenAmount};
         emit VendorAcceptOffer(
-            rd.vendor,
-            rd.lender,
-            rd.NFTAddress,
-            rd.tokenId,
-            rd.tokenAmount,
-            rd.tokenRate,
-            rd.amountOfTime,
-            rd.deadLine
+            _requestNumber,
+            _offerNumber
         );
     }
 

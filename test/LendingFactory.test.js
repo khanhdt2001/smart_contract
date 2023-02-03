@@ -125,13 +125,61 @@ describe("LendingFactory", function () {
             .lenderMakeOffer(0, 10, 12, 3600);
          await expect(res)
             .to.be.emit(lendingFactory, "LenderMakeOffer")
-            .withArgs(address2.address, 0, 10, 12, 3600);
+            .withArgs(address2.address, 0, 0, 10, 12, 3600);
+      });
+      it("success", async () => {
+         await setUpLenderMakeOffer();
+         await lendingFactory
+            .connect(address2)
+            .lenderMakeOffer(0, 10, 12, 3600);
+         const res = await lendingFactory
+            .connect(address2)
+            .lenderMakeOffer(0, 10, 12, 3600);
+         await expect(res)
+            .to.be.emit(lendingFactory, "LenderMakeOffer")
+            .withArgs(address2.address, 0, 1, 10, 12, 3600);
       });
    });
 
+   const setUpForVendorAcceptOffer = async () => {
+      await setUpLenderMakeOffer();
+      await lendingFactory.connect(address2).lenderMakeOffer(0, 10, 12, 3600);
+   };
+
    describe("vendorAcceptOffer", () => {
       it("fail", async () => {
+         await expect(
+            lendingFactory.connect(address1).vendorAcceptOffer(1, 20)
+         ).to.be.revertedWith("Address must be registered");
+      });
+      it("fail", async () => {
+         await expect(
+            lendingFactory.vendorAcceptOffer(1, 20)
+         ).to.be.revertedWith("Address must be registered");
+      });
+      it("fail", async () => {
+         await setUpForVendorAcceptOffer();
+         await expect(
+            lendingFactory.connect(address2).vendorAcceptOffer(0, 0)
+         ).to.be.revertedWith("Lending: Must be Vendor");
+      });
+      it("fail", async () => {
+         await setUpForVendorAcceptOffer();
+         await expect(
+            lendingFactory.connect(address1).vendorAcceptOffer(0, 1)
+         ).to.be.revertedWith("Lending: offer must exist");
+      });
+      it("success", async () => {
+         await setUpForVendorAcceptOffer();
+         console.log(address2.address);
          
-      })
+         await Nft.connect(address1).approve(lendingFactory.address, 1)
+         const res = await lendingFactory
+            .connect(address1)
+            .vendorAcceptOffer(0, 0);
+         await expect(res)
+            .to.be.emit(lendingFactory, "VendorAcceptOffer")
+            .withArgs(0, 0);
+      });
    });
 });
