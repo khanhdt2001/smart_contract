@@ -143,8 +143,6 @@ contract LendingFactory is Receipt, Offer, Ownable {
 
         ERC721 NFT = rd.NFTAddress;
         NFT.transferFrom(rd.vendor, lendingBank, rd.tokenId);
-        console.log(od.lender);
-        console.log(od.offerTokenAmount);
         od.lender.call{value: od.offerTokenAmount};
         emit VendorAcceptOffer(
             _requestNumber,

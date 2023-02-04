@@ -171,8 +171,6 @@ describe("LendingFactory", function () {
       });
       it("success", async () => {
          await setUpForVendorAcceptOffer();
-         console.log(address2.address);
-         
          await Nft.connect(address1).approve(lendingFactory.address, 1)
          const res = await lendingFactory
             .connect(address1)
