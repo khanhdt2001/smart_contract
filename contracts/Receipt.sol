@@ -16,6 +16,7 @@ interface Receipt {
         uint256 tokenRate;
         uint256 amountOfTime;
         uint256 deadLine;
+        uint256 paymentTime;
     }
     
 }

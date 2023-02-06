@@ -8,6 +8,7 @@ interface Offer {
         uint256 offerTokenAmount;
         uint256 offerRate;
         uint256 offerAmountOfTime;
+        uint256 offerPaymentTime;
     }
     
 }

@@ -6,14 +6,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "./LendingBank.sol";
 import "./Receipt.sol";
 import "./Offer.sol";
 
 contract LendingFactory is Receipt, Offer, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter requestNumber;
-    address public lendingBank;
     mapping(address => bool) public registerAddresses;
     mapping(address => bool) public registerNFTs;
     mapping(uint256 => ReceiptDetail) public receiptBook;
@@ -21,10 +19,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
     mapping(uint256 => uint256) public offerOrder;
     mapping(address => bool) public registerERC721;
 
-    constructor() Ownable() {
-        LendingBank ld = new LendingBank();
-        lendingBank = address(ld);
-    }
+    constructor() Ownable() {}
 
     event VendorMakeRequest(address vendor, ERC721 NFTAddress, uint256 tokenId);
     event LenderMakeOffer(
@@ -33,17 +28,15 @@ contract LendingFactory is Receipt, Offer, Ownable {
         uint256 offerNumber,
         uint256 offerTokenAmount,
         uint256 offerRate,
-        uint256 offerAmountOfTime
+        uint256 offerAmountOfTime,
+        uint256 offerPaymenTime
     );
-    event VendorAcceptOffer(
-        uint256 requestNumber,
-        uint256 offerNumber
-    );
+    event VendorAcceptOffer(uint256 requestNumber, uint256 offerNumber);
     event VendorReddem(uint256 requestNumber);
-    event VendorExtend(uint256 requestNumber, uint256 deadLine);
+    event VendorExtend(uint256 requestNumber, uint256 paidToken);
     event RegisterLending(address _address);
     event RegisterNFT(address NFTAddress);
-
+    event WithDrawNFT(uint256 _requestNumber, address _reciever);
     modifier onlyRegistered() {
         require(
             registerAddresses[msg.sender] != false,
@@ -93,6 +86,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
             0,
             0,
             0,
+            0,
             0
         );
         Counters.increment(requestNumber);
@@ -103,7 +97,8 @@ contract LendingFactory is Receipt, Offer, Ownable {
         uint256 _requestNumber,
         uint256 _offerTokenAmount,
         uint256 _offerRate,
-        uint256 _amountOfTime
+        uint256 _amountOfTime,
+        uint256 _paymentTime
     ) public onlyRegistered {
         uint256 currentOffer = offerOrder[_requestNumber];
 
@@ -111,11 +106,16 @@ contract LendingFactory is Receipt, Offer, Ownable {
             receiptBook[_requestNumber].vendor != address(0),
             "Lending: receipt must exist"
         );
+        require(
+            _amountOfTime / _paymentTime >= 7 days && _amountOfTime < 30 days,
+            "Lending: offer time and payment time are not valid"
+        );
         offerBook[_requestNumber][currentOffer] = OfferDetail(
             payable(msg.sender),
             _offerTokenAmount,
             _offerRate,
-            _amountOfTime
+            _amountOfTime,
+            _paymentTime
         );
         offerOrder[_requestNumber] += 1;
         emit LenderMakeOffer(
@@ -124,12 +124,15 @@ contract LendingFactory is Receipt, Offer, Ownable {
             currentOffer,
             _offerTokenAmount,
             _offerRate,
-            _amountOfTime
+            _amountOfTime,
+            _paymentTime
         );
     }
 
     function vendorAcceptOffer(uint256 _requestNumber, uint256 _offerNumber)
-        public onlyRegistered onlyVendor(_requestNumber)
+        public
+        onlyRegistered
+        onlyVendor(_requestNumber)
     {
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         OfferDetail memory od = offerBook[_requestNumber][_offerNumber];
@@ -140,14 +143,12 @@ contract LendingFactory is Receipt, Offer, Ownable {
         rd.tokenRate = od.offerRate;
         rd.amountOfTime = od.offerAmountOfTime;
         rd.deadLine = block.timestamp + od.offerAmountOfTime;
+        rd.paymentTime = od.offerPaymentTime;
 
         ERC721 NFT = rd.NFTAddress;
-        NFT.transferFrom(rd.vendor, lendingBank, rd.tokenId);
+        NFT.transferFrom(rd.vendor, address(this), rd.tokenId);
         od.lender.call{value: od.offerTokenAmount};
-        emit VendorAcceptOffer(
-            _requestNumber,
-            _offerNumber
-        );
+        emit VendorAcceptOffer(_requestNumber, _offerNumber);
     }
 
     /*
@@ -159,10 +160,13 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
 
     function vendorPayRountine(uint256 _requestNumber) public {
         ReceiptDetail storage rd = receiptBook[_requestNumber];
-        uint256 tokenMustPaid = ((rd.tokenAmount * rd.tokenRate) / 100);
+        uint256 tokenMustPaid = rd.tokenAmount /
+            rd.paymentTime +
+            ((rd.tokenAmount * rd.tokenRate) / 100) /
+            rd.paymentTime;
         payable(msg.sender).transfer(tokenMustPaid);
-        rd.deadLine = rd.deadLine + rd.amountOfTime;
-        emit VendorExtend(_requestNumber, rd.deadLine);
+        rd.paidAmount += tokenMustPaid;
+        emit VendorExtend(_requestNumber, rd.paidAmount);
     }
 
     function vendorRedeem(uint256 _requestNumber) public {
@@ -170,8 +174,8 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         // check condition
         uint256 tokenMustPaid = rd.tokenAmount * (1 + rd.tokenRate);
         payable(msg.sender).transfer(tokenMustPaid);
-        LendingBank ld = LendingBank(rd.lender);
-        ld.withdrawNFT(_requestNumber, rd.vendor);
+
+        withdrawNFT(_requestNumber, rd.vendor);
         emit VendorReddem(_requestNumber);
     }
 
@@ -185,5 +189,12 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         require(registerNFTs[address(_NFTAddress)] != true, "Already registor");
         registerNFTs[address(_NFTAddress)] = true;
         emit RegisterNFT(address(_NFTAddress));
+    }
+
+    function withdrawNFT(uint256 _requestNumber, address _receiver) public {
+        ReceiptDetail memory rd = getReceiptBook(_requestNumber);
+        ERC721 nft = ERC721(rd.NFTAddress);
+        nft.transferFrom(address(this), _receiver, rd.tokenId);
+        emit WithDrawNFT(_requestNumber, _receiver);
     }
 }
