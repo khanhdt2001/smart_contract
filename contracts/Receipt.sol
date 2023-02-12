@@ -17,6 +17,7 @@ interface Receipt {
         uint256 amountOfTime;
         uint256 deadLine;
         uint256 paymentTime;
+        uint256 paymentCount;
     }
     
 }

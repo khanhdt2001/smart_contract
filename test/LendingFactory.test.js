@@ -216,4 +216,9 @@ describe("LendingFactory", function () {
                 .withArgs(0, 0);
         });
     });
+    describe("vendorPayRountine", ()=>{
+        it("fail", async () => {
+            
+        })
+    })
 });

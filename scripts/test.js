@@ -6,12 +6,12 @@ async function main() {
    const accounts = await ethers.provider.listAccounts();
    const [admin, address1, address2] = accounts;
    const signer1 = ethers.provider.getSigner(address1);
+   const signer2 = ethers.provider.getSigner(address2);
 
-   // console.log(admin, address1, address2);
+
    const lend = await Lend.attach("0x5fbdb2315678afecb367f032d93f642f64180aa3");
-   await lend.connect(signer1).registerLending();
-//    const status = await lend.connect(signer1).registerAddresses("0x5fbdb2315678afecb367f032d93f642f64180aa3")
-//    console.log(status);
+   // await lend.connect(signer1).registerLending();
+   await lend.connect(signer2).registerLending()
 }
 
 main()

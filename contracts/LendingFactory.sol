@@ -87,6 +87,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
             0,
             0,
             0,
+            0, 
             0
         );
         Counters.increment(requestNumber);
@@ -158,6 +159,14 @@ A borrow B 100 mil with rate 12% per 12 months
 A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333   
 */
 
+    function test(uint256 _requestNumber) public view {
+        ReceiptDetail storage rd = receiptBook[_requestNumber];
+        uint256 time = rd.deadLine - rd.amountOfTime;
+        uint256 duration = rd.amountOfTime / rd.paymentTime;
+        uint256 res = (block.timestamp - time) / duration;
+        console.log(res);
+    }
+
     function vendorPayRountine(uint256 _requestNumber) public {
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         uint256 tokenMustPaid = rd.tokenAmount /
@@ -166,6 +175,7 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
             rd.paymentTime;
         payable(msg.sender).transfer(tokenMustPaid);
         rd.paidAmount += tokenMustPaid;
+        rd.paymentCount++;
         emit VendorExtend(_requestNumber, rd.paidAmount);
     }
 
