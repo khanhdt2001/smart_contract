@@ -18,6 +18,8 @@ contract LendingFactory is Receipt, Offer, Ownable {
     mapping(uint256 => mapping(uint256 => OfferDetail)) public offerBook;
     mapping(uint256 => uint256) public offerOrder;
     mapping(address => bool) public registerERC721;
+    mapping(address => uint256) public addressBalance;
+    mapping(address => mapping(address => uint256)) public addressApprove;
 
     constructor() Ownable() {}
 
@@ -87,7 +89,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
             0,
             0,
             0,
-            0, 
+            0,
             0
         );
         Counters.increment(requestNumber);
@@ -96,34 +98,32 @@ contract LendingFactory is Receipt, Offer, Ownable {
 
     function lenderMakeOffer(
         uint256 _requestNumber,
-        uint256 _offerTokenAmount,
         uint256 _offerRate,
         uint256 _amountOfTime,
         uint256 _paymentTime
-    ) public onlyRegistered {
+    ) public payable onlyRegistered {
         uint256 currentOffer = offerOrder[_requestNumber];
-
-        require(
-            receiptBook[_requestNumber].vendor != address(0),
-            "Lending: receipt must exist"
-        );
+        ReceiptDetail storage rd = receiptBook[_requestNumber];
+        require(rd.vendor != address(0), "Lending: receipt must exist");
         require(
             _amountOfTime / _paymentTime >= 7 days && _amountOfTime < 30 days,
             "Lending: offer time and payment time are not valid"
         );
         offerBook[_requestNumber][currentOffer] = OfferDetail(
             payable(msg.sender),
-            _offerTokenAmount,
+            msg.value,
             _offerRate,
             _amountOfTime,
             _paymentTime
         );
         offerOrder[_requestNumber] += 1;
+        addressBalance[msg.sender] += msg.value;
+        addressApprove[msg.sender][rd.vendor] += msg.value;
         emit LenderMakeOffer(
             payable(msg.sender),
             _requestNumber,
             currentOffer,
-            _offerTokenAmount,
+            msg.value,
             _offerRate,
             _amountOfTime,
             _paymentTime
@@ -135,20 +135,28 @@ contract LendingFactory is Receipt, Offer, Ownable {
         onlyRegistered
         onlyVendor(_requestNumber)
     {
+        // get data
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         OfferDetail memory od = offerBook[_requestNumber][_offerNumber];
         require(od.lender != address(0), "Lending: offer must exist");
-
+        require(addressBalance[od.lender] >= od.offerTokenAmount, "Lending: Lender balance does not support");
+        // update data
         rd.lender = od.lender;
         rd.tokenAmount = od.offerTokenAmount;
         rd.tokenRate = od.offerRate;
         rd.amountOfTime = od.offerAmountOfTime;
         rd.deadLine = block.timestamp + od.offerAmountOfTime;
         rd.paymentTime = od.offerPaymentTime;
-
+        // transfer nft and eth
         ERC721 NFT = rd.NFTAddress;
         NFT.transferFrom(rd.vendor, address(this), rd.tokenId);
-        od.lender.call{value: od.offerTokenAmount};
+        console.log("od.offerTokenAmount", od.offerTokenAmount);
+        address payable to = payable(msg.sender);
+        to.transfer(od.offerTokenAmount);
+        addressBalance[od.lender] -= od.offerTokenAmount;
+        addressApprove[od.lender][rd.vendor] -= od.offerTokenAmount;
+        console.log(addressBalance[od.lender]);
+
         emit VendorAcceptOffer(_requestNumber, _offerNumber);
     }
 
@@ -159,21 +167,26 @@ A borrow B 100 mil with rate 12% per 12 months
 A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333   
 */
 
-    function test(uint256 _requestNumber) public view {
-        ReceiptDetail storage rd = receiptBook[_requestNumber];
-        uint256 time = rd.deadLine - rd.amountOfTime;
-        uint256 duration = rd.amountOfTime / rd.paymentTime;
-        uint256 res = (block.timestamp - time) / duration;
-        console.log(res);
-    }
-
     function vendorPayRountine(uint256 _requestNumber) public {
         ReceiptDetail storage rd = receiptBook[_requestNumber];
+        uint256 startTime = rd.deadLine - rd.amountOfTime;
+        console.log("time", startTime);
+        console.log("rd.amountOfTime", rd.amountOfTime);
+        console.log("rd.paymentTime", rd.paymentTime);
+        uint256 duration = rd.amountOfTime / rd.paymentTime;
+
+        console.log("duration", duration);
+
+        uint256 res = (block.timestamp - startTime) / duration;
+        console.log("res", res);
         uint256 tokenMustPaid = rd.tokenAmount /
             rd.paymentTime +
             ((rd.tokenAmount * rd.tokenRate) / 100) /
             rd.paymentTime;
-        payable(msg.sender).transfer(tokenMustPaid);
+        console.log("tokenAmount", rd.tokenAmount);
+
+        console.log("tokenMustPaid", tokenMustPaid);
+        payable(msg.sender).call{value: tokenMustPaid};
         rd.paidAmount += tokenMustPaid;
         rd.paymentCount++;
         emit VendorExtend(_requestNumber, rd.paidAmount);
