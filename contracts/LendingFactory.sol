@@ -19,7 +19,6 @@ contract LendingFactory is Receipt, Offer, Ownable {
     mapping(uint256 => uint256) public offerOrder;
     mapping(address => bool) public registerERC721;
     mapping(address => uint256) public addressBalance;
-    mapping(address => mapping(address => uint256)) public addressApprove;
 
     constructor() Ownable() {}
 
@@ -35,9 +34,10 @@ contract LendingFactory is Receipt, Offer, Ownable {
     );
     event VendorAcceptOffer(uint256 requestNumber, uint256 offerNumber);
     event VendorReddem(uint256 requestNumber);
-    event VendorExtend(uint256 requestNumber, uint256 paidToken);
+    event VendorPayRountine(uint256 requestNumber, uint256 paidCounter);
     event RegisterLending(address _address);
     event RegisterNFT(address NFTAddress);
+    event UnRegisterNFT(address NFTAddress);
     event WithDrawNFT(uint256 _requestNumber, address _reciever);
     modifier onlyRegistered() {
         require(
@@ -89,7 +89,6 @@ contract LendingFactory is Receipt, Offer, Ownable {
             0,
             0,
             0,
-            0,
             0
         );
         Counters.increment(requestNumber);
@@ -118,7 +117,6 @@ contract LendingFactory is Receipt, Offer, Ownable {
         );
         offerOrder[_requestNumber] += 1;
         addressBalance[msg.sender] += msg.value;
-        addressApprove[msg.sender][rd.vendor] += msg.value;
         emit LenderMakeOffer(
             payable(msg.sender),
             _requestNumber,
@@ -139,7 +137,10 @@ contract LendingFactory is Receipt, Offer, Ownable {
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         OfferDetail memory od = offerBook[_requestNumber][_offerNumber];
         require(od.lender != address(0), "Lending: offer must exist");
-        require(addressBalance[od.lender] >= od.offerTokenAmount, "Lending: Lender balance does not support");
+        require(
+            addressBalance[od.lender] >= od.offerTokenAmount,
+            "Lending: Lender balance does not support"
+        );
         // update data
         rd.lender = od.lender;
         rd.tokenAmount = od.offerTokenAmount;
@@ -150,13 +151,9 @@ contract LendingFactory is Receipt, Offer, Ownable {
         // transfer nft and eth
         ERC721 NFT = rd.NFTAddress;
         NFT.transferFrom(rd.vendor, address(this), rd.tokenId);
-        console.log("od.offerTokenAmount", od.offerTokenAmount);
         address payable to = payable(msg.sender);
         to.transfer(od.offerTokenAmount);
         addressBalance[od.lender] -= od.offerTokenAmount;
-        addressApprove[od.lender][rd.vendor] -= od.offerTokenAmount;
-        console.log(addressBalance[od.lender]);
-
         emit VendorAcceptOffer(_requestNumber, _offerNumber);
     }
 
@@ -167,39 +164,72 @@ A borrow B 100 mil with rate 12% per 12 months
 A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333   
 */
 
-    function vendorPayRountine(uint256 _requestNumber) public {
+    function getTokenMustPaidPerTime(uint256 _requestNumber)
+        public
+        view
+        returns (uint256)
+    {
         ReceiptDetail storage rd = receiptBook[_requestNumber];
-        uint256 startTime = rd.deadLine - rd.amountOfTime;
-        console.log("time", startTime);
-        console.log("rd.amountOfTime", rd.amountOfTime);
-        console.log("rd.paymentTime", rd.paymentTime);
-        uint256 duration = rd.amountOfTime / rd.paymentTime;
-
-        console.log("duration", duration);
-
-        uint256 res = (block.timestamp - startTime) / duration;
-        console.log("res", res);
         uint256 tokenMustPaid = rd.tokenAmount /
             rd.paymentTime +
             ((rd.tokenAmount * rd.tokenRate) / 100) /
             rd.paymentTime;
-        console.log("tokenAmount", rd.tokenAmount);
-
-        console.log("tokenMustPaid", tokenMustPaid);
-        payable(msg.sender).call{value: tokenMustPaid};
-        rd.paidAmount += tokenMustPaid;
-        rd.paymentCount++;
-        emit VendorExtend(_requestNumber, rd.paidAmount);
+        return tokenMustPaid;
     }
 
-    function vendorRedeem(uint256 _requestNumber) public {
-        ReceiptDetail memory rd = receiptBook[_requestNumber];
-        // check condition
-        uint256 tokenMustPaid = rd.tokenAmount * (1 + rd.tokenRate);
-        payable(msg.sender).transfer(tokenMustPaid);
+    function vendorPayRountine(uint256 _requestNumber) public payable {
+        // get value
+        ReceiptDetail storage rd = receiptBook[_requestNumber];
+        // calculate
+        uint256 startTime = rd.deadLine - rd.amountOfTime;
+        uint256 duration = rd.amountOfTime / rd.paymentTime;
+        uint256 checker = (block.timestamp - startTime) / duration;
+        require(rd.paymentCount < rd.paymentCount, "Lending: Paid done");
+        require(rd.paymentCount >= checker, "Lending: Request time out");
 
-        withdrawNFT(_requestNumber, rd.vendor);
-        emit VendorReddem(_requestNumber);
+        uint256 tokenMustPaid = getTokenMustPaidPerTime(_requestNumber);
+        require(msg.value >= tokenMustPaid, "Lending: Not enough eth");
+        addressBalance[msg.sender] += msg.value - tokenMustPaid;
+        console.log("tokenAmount", rd.tokenAmount);
+        console.log(" addressBalance[msg.sender]", addressBalance[msg.sender]);
+
+        console.log("tokenMustPaid", tokenMustPaid);
+        address payable to = payable(rd.lender);
+        to.transfer(tokenMustPaid);
+
+        rd.paymentCount++;
+        console.log("rd.paymentCount", rd.paymentCount);
+        emit VendorPayRountine(_requestNumber, rd.paymentCount);
+    }
+
+    // function vendorRedeem(uint256 _requestNumber) public {
+    //     ReceiptDetail memory rd = receiptBook[_requestNumber];
+    //     require(rd.paymentCount == rd.paymentCount, "Lending: Paid not done");
+    //     withdrawNFT(_requestNumber, rd.vendor);
+    //     emit VendorReddem(_requestNumber);
+    // }
+
+    function withdrawNFT(uint256 _requestNumber) public {
+        ReceiptDetail memory rd = getReceiptBook(_requestNumber);
+        ERC721 nft = ERC721(rd.NFTAddress);
+
+        require(
+            msg.sender == rd.vendor || msg.sender == rd.lender,
+            "Lending: not able to access"
+        );
+        if (msg.sender == rd.lender) {
+            uint256 startTime = rd.deadLine - rd.amountOfTime;
+            uint256 duration = rd.amountOfTime / rd.paymentTime;
+            uint256 checker = (block.timestamp - startTime) / duration;
+            require(rd.paymentCount < checker, "Lending: Request on time");
+        } else {
+            require(
+                rd.paymentCount == rd.paymentTime,
+                "Lending: Request on time"
+            );
+        }
+        nft.transferFrom(address(this), msg.sender, rd.tokenId);
+        emit WithDrawNFT(_requestNumber, msg.sender);
     }
 
     function registerLending() public {
@@ -214,10 +244,12 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         emit RegisterNFT(address(_NFTAddress));
     }
 
-    function withdrawNFT(uint256 _requestNumber, address _receiver) public {
-        ReceiptDetail memory rd = getReceiptBook(_requestNumber);
-        ERC721 nft = ERC721(rd.NFTAddress);
-        nft.transferFrom(address(this), _receiver, rd.tokenId);
-        emit WithDrawNFT(_requestNumber, _receiver);
+    function unRegisterNFT(ERC721 _NFTAddress) public onlyOwner {
+        require(
+            registerNFTs[address(_NFTAddress)] != true,
+            "Already un-registor"
+        );
+        registerNFTs[address(_NFTAddress)] = false;
+        emit UnRegisterNFT(address(_NFTAddress));
     }
 }

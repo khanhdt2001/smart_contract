@@ -12,7 +12,8 @@ contract SampleNFT is ERC721, Ownable {
     using Strings for uint256;
     string private _baseURIextended;
 
-    constructor() ERC721("SampleNFT", "SPN") Ownable() {}
+    constructor() ERC721("SampleNFT", "SPNFT") Ownable() {
+    }
 
     function setBaseURI(string memory baseURI_) external onlyOwner {
         _baseURIextended = baseURI_;
