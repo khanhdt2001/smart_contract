@@ -17,12 +17,11 @@ contract LendingFactory is Receipt, Offer, Ownable {
     mapping(uint256 => ReceiptDetail) public receiptBook;
     mapping(uint256 => mapping(uint256 => OfferDetail)) public offerBook;
     mapping(uint256 => uint256) public offerOrder;
-    mapping(address => bool) public registerERC721;
     mapping(address => uint256) public addressBalance;
 
     constructor() Ownable() {}
 
-    event VendorMakeRequest(address vendor, ERC721 NFTAddress, uint256 tokenId);
+    event VendorMakeRequest(address vendor, ERC721 NFTAddress, uint256 tokenId, uint256 requestNumber);
     event LenderMakeOffer(
         address payable lender,
         uint256 requestNumber,
@@ -39,13 +38,6 @@ contract LendingFactory is Receipt, Offer, Ownable {
     event RegisterNFT(address NFTAddress);
     event UnRegisterNFT(address NFTAddress);
     event WithDrawNFT(uint256 _requestNumber, address _reciever);
-    modifier onlyRegistered() {
-        require(
-            registerAddresses[msg.sender] != false,
-            "Address must be registered"
-        );
-        _;
-    }
     modifier onlyVendor(uint256 _requestNumber) {
         require(
             receiptBook[_requestNumber].vendor == msg.sender,
@@ -72,7 +64,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
 
     function vendorMakeRequest(ERC721 NFTAddress, uint256 tokenId)
         public
-        onlyRegistered
+        
     {
         require(
             NFTAddress.ownerOf(tokenId) == msg.sender,
@@ -92,7 +84,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
             0
         );
         Counters.increment(requestNumber);
-        emit VendorMakeRequest(msg.sender, NFTAddress, tokenId);
+        emit VendorMakeRequest(msg.sender, NFTAddress, tokenId, Counters.current(requestNumber));
     }
 
     function lenderMakeOffer(
@@ -100,7 +92,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
         uint256 _offerRate,
         uint256 _amountOfTime,
         uint256 _paymentTime
-    ) public payable onlyRegistered {
+    ) public payable  {
         uint256 currentOffer = offerOrder[_requestNumber];
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         require(rd.vendor != address(0), "Lending: receipt must exist");
@@ -130,7 +122,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
 
     function vendorAcceptOffer(uint256 _requestNumber, uint256 _offerNumber)
         public
-        onlyRegistered
+        
         onlyVendor(_requestNumber)
     {
         // get data

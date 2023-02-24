@@ -10,8 +10,6 @@ async function main() {
     const singerAdmin = ethers.provider.getSigner(admin);
     const nft = Nft.attach("0xe7f1725e7734ce288f8367e1bb143e90bb3f0512")
     await nft.connect(singerAdmin).mint("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
-    const res = await nft.ownerOf(3)
-    console.log(res);
 }
 
 main()
