@@ -8,7 +8,7 @@ module.exports = {
       mining: {
         auto: true,
         interval: 3000
-      }
+      },
     }
   }
 };

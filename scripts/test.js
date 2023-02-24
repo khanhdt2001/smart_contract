@@ -2,7 +2,7 @@ const { ethers } = require("hardhat");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 async function main() {
    const Lend = await ethers.getContractFactory("LendingFactory");
-
+   const Nft = await ethers.getContractFactory("SampleNFT");
    const accounts = await ethers.provider.listAccounts();
    const [admin, address1, address2] = accounts;
    const signer1 = ethers.provider.getSigner(address1);
@@ -10,8 +10,10 @@ async function main() {
 
 
    const lend = await Lend.attach("0x5fbdb2315678afecb367f032d93f642f64180aa3");
-   // await lend.connect(signer1).registerLending();
-   await lend.connect(signer2).registerLending()
+   const nft = await Nft.attach("0xe7f1725e7734ce288f8367e1bb143e90bb3f0512");
+
+   const res = await nft.ownerOf(12);
+   console.log(res);
 }
 
 main()
