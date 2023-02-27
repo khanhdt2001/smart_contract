@@ -12,16 +12,22 @@ import "./Offer.sol";
 contract LendingFactory is Receipt, Offer, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter requestNumber;
-    mapping(address => bool) public registerAddresses;
     mapping(address => bool) public registerNFTs;
     mapping(uint256 => ReceiptDetail) public receiptBook;
     mapping(uint256 => mapping(uint256 => OfferDetail)) public offerBook;
     mapping(uint256 => uint256) public offerOrder;
     mapping(address => uint256) public addressBalance;
+    mapping(ERC721 => mapping(address => mapping(uint256 => bool)))
+        public nftStatus;
 
     constructor() Ownable() {}
 
-    event VendorMakeRequest(address vendor, ERC721 NFTAddress, uint256 tokenId, uint256 requestNumber);
+    event VendorMakeRequest(
+        address vendor,
+        ERC721 NFTAddress,
+        uint256 tokenId,
+        uint256 requestNumber
+    );
     event LenderMakeOffer(
         address payable lender,
         uint256 requestNumber,
@@ -34,10 +40,9 @@ contract LendingFactory is Receipt, Offer, Ownable {
     event VendorAcceptOffer(uint256 requestNumber, uint256 offerNumber);
     event VendorReddem(uint256 requestNumber);
     event VendorPayRountine(uint256 requestNumber, uint256 paidCounter);
-    event RegisterLending(address _address);
     event RegisterNFT(address NFTAddress);
     event UnRegisterNFT(address NFTAddress);
-    event WithDrawNFT(uint256 _requestNumber, address _reciever);
+    event WithDrawNFT(uint256 requestNumber, address _reciever);
     modifier onlyVendor(uint256 _requestNumber) {
         require(
             receiptBook[_requestNumber].vendor == msg.sender,
@@ -62,15 +67,15 @@ contract LendingFactory is Receipt, Offer, Ownable {
         return offerBook[_requestNumber][_offerNumber];
     }
 
-    function vendorMakeRequest(ERC721 NFTAddress, uint256 tokenId)
-        public
-        
-    {
+    function vendorMakeRequest(ERC721 NFTAddress, uint256 tokenId) public {
         require(
             NFTAddress.ownerOf(tokenId) == msg.sender,
             "Lending: sender must have NFT"
         );
-
+        require(
+            nftStatus[NFTAddress][msg.sender][tokenId] == false,
+            "Lending: nft already in market"
+        );
         receiptBook[Counters.current(requestNumber)] = ReceiptDetail(
             msg.sender,
             address(0),
@@ -84,7 +89,13 @@ contract LendingFactory is Receipt, Offer, Ownable {
             0
         );
         Counters.increment(requestNumber);
-        emit VendorMakeRequest(msg.sender, NFTAddress, tokenId, Counters.current(requestNumber));
+        nftStatus[NFTAddress][msg.sender][tokenId] = true;
+        emit VendorMakeRequest(
+            msg.sender,
+            NFTAddress,
+            tokenId,
+            Counters.current(requestNumber)
+        );
     }
 
     function lenderMakeOffer(
@@ -92,7 +103,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
         uint256 _offerRate,
         uint256 _amountOfTime,
         uint256 _paymentTime
-    ) public payable  {
+    ) public payable {
         uint256 currentOffer = offerOrder[_requestNumber];
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         require(rd.vendor != address(0), "Lending: receipt must exist");
@@ -122,7 +133,6 @@ contract LendingFactory is Receipt, Offer, Ownable {
 
     function vendorAcceptOffer(uint256 _requestNumber, uint256 _offerNumber)
         public
-        
         onlyVendor(_requestNumber)
     {
         // get data
@@ -222,12 +232,6 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         }
         nft.transferFrom(address(this), msg.sender, rd.tokenId);
         emit WithDrawNFT(_requestNumber, msg.sender);
-    }
-
-    function registerLending() public {
-        require(registerAddresses[msg.sender] != true, "Already registor");
-        registerAddresses[msg.sender] = true;
-        emit RegisterLending(msg.sender);
     }
 
     function registerNFT(ERC721 _NFTAddress) public onlyOwner {
