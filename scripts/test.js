@@ -7,15 +7,20 @@ async function main() {
    const [admin, address1, address2] = accounts;
    const signer1 = ethers.provider.getSigner(address1);
    const signer2 = ethers.provider.getSigner(address2);
+   const singerAdmin = ethers.provider.getSigner(admin);
+
 
 
    const lend = await Lend.attach("0x5fbdb2315678afecb367f032d93f642f64180aa3");
-   const nft = await Nft.attach("0xe7f1725e7734ce288f8367e1bb143e90bb3f0512");
+   const nft = await Nft.attach("0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d");
+   await nft.connect(singerAdmin).mint(address1)
+
 
    const res = await nft.ownerOf(0);
    await nft.connect(signer1).approve("0x5fbdb2315678afecb367f032d93f642f64180aa3", 0)
-   await lend.connect(signer1).vendorMakeRequest("0xe7f1725e7734ce288f8367e1bb143e90bb3f0512", 0)
+   await lend.connect(signer1).vendorMakeRequest("0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d", 0)
    console.log(res);
+   console.log(address1);
 }
 
 main()

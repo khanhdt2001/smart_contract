@@ -13,7 +13,7 @@ contract SampleNFT is ERC721, Ownable {
     constructor() ERC721("SampleNFT", "SPNFT") Ownable() {
     }
 
-    function mint(address _reciever) public onlyOwner {
+    function mint(address _reciever) public {
         _safeMint(_reciever, Counters.current(tokenId));
         Counters.increment(tokenId);
     }
