@@ -10,6 +10,14 @@ async function main() {
     const singerAdmin = ethers.provider.getSigner(admin);
     const nft = Nft.attach("0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d")
     await nft.connect(singerAdmin).mint("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
+    await nft.connect(singerAdmin).mint("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
+    await nft.connect(singerAdmin).mint("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
+    await nft.connect(singerAdmin).mint("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
+    
+    await nft.connect(singerAdmin).mint("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
+    await nft.connect(singerAdmin).mint("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
+    await nft.connect(singerAdmin).mint("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
+    await nft.connect(singerAdmin).mint("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
     await nft.connect(singerAdmin).mint("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
     await nft.connect(singerAdmin).mint("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
 }
