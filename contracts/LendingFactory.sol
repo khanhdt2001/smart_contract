@@ -88,7 +88,6 @@ contract LendingFactory is Receipt, Offer, Ownable {
             0,
             0
         );
-        Counters.increment(requestNumber);
         nftStatus[NFTAddress][msg.sender][tokenId] = true;
         emit VendorMakeRequest(
             msg.sender,
@@ -96,6 +95,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
             tokenId,
             Counters.current(requestNumber)
         );
+        Counters.increment(requestNumber);
     }
 
     function lenderMakeOffer(
