@@ -37,7 +37,20 @@ contract LendingFactory is Receipt, Offer, Ownable {
         uint256 offerAmountOfTime,
         uint256 offerPaymenTime
     );
-    event VendorAcceptOffer(uint256 requestNumber, uint256 offerNumber);
+    event VendorAcceptOffer(
+        uint256 requestNumber,
+        uint256 offerNumber,
+        address vendor,
+        address lender,
+        ERC721 NFTAddress,
+        uint256 tokenId,
+        uint256 tokenAmount,
+        uint256 tokenRate,
+        uint256 amountOfTime,
+        uint256 deadLine,
+        uint256 paymentTime,
+        uint256 paymentCount
+    );
     event VendorReddem(uint256 requestNumber);
     event VendorPayRountine(uint256 requestNumber, uint256 paidCounter);
     event RegisterNFT(address NFTAddress);
@@ -51,19 +64,16 @@ contract LendingFactory is Receipt, Offer, Ownable {
         _;
     }
 
-    function getReceiptBook(uint256 _requestNumber)
-        public
-        view
-        returns (ReceiptDetail memory)
-    {
+    function getReceiptBook(
+        uint256 _requestNumber
+    ) public view returns (ReceiptDetail memory) {
         return receiptBook[_requestNumber];
     }
 
-    function getOfferBook(uint256 _requestNumber, uint256 _offerNumber)
-        public
-        view
-        returns (OfferDetail memory)
-    {
+    function getOfferBook(
+        uint256 _requestNumber,
+        uint256 _offerNumber
+    ) public view returns (OfferDetail memory) {
         return offerBook[_requestNumber][_offerNumber];
     }
 
@@ -107,6 +117,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
         uint256 currentOffer = offerOrder[_requestNumber];
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         require(rd.vendor != address(0), "Lending: receipt must exist");
+        require(rd.tokenAmount == 0, "Lending: receipt must still available");
         require(
             _amountOfTime / _paymentTime >= 7 days && _amountOfTime < 30 days,
             "Lending: offer time and payment time are not valid"
@@ -131,10 +142,10 @@ contract LendingFactory is Receipt, Offer, Ownable {
         );
     }
 
-    function vendorAcceptOffer(uint256 _requestNumber, uint256 _offerNumber)
-        public
-        onlyVendor(_requestNumber)
-    {
+    function vendorAcceptOffer(
+        uint256 _requestNumber,
+        uint256 _offerNumber
+    ) public onlyVendor(_requestNumber) {
         // get data
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         OfferDetail memory od = offerBook[_requestNumber][_offerNumber];
@@ -156,7 +167,20 @@ contract LendingFactory is Receipt, Offer, Ownable {
         address payable to = payable(msg.sender);
         to.transfer(od.offerTokenAmount);
         addressBalance[od.lender] -= od.offerTokenAmount;
-        emit VendorAcceptOffer(_requestNumber, _offerNumber);
+        emit VendorAcceptOffer(
+            _requestNumber,
+            _offerNumber,
+            rd.vendor,
+            rd.lender,
+            rd.NFTAddress,
+            rd.tokenId,
+            rd.tokenAmount,
+            rd.tokenRate,
+            rd.amountOfTime,
+            rd.deadLine,
+            rd.paymentTime,
+            0
+        );
     }
 
     /*
@@ -166,11 +190,9 @@ A borrow B 100 mil with rate 12% per 12 months
 A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333   
 */
 
-    function getTokenMustPaidPerTime(uint256 _requestNumber)
-        public
-        view
-        returns (uint256)
-    {
+    function getTokenMustPaidPerTime(
+        uint256 _requestNumber
+    ) public view returns (uint256) {
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         uint256 tokenMustPaid = rd.tokenAmount /
             rd.paymentTime +
