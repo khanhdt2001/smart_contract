@@ -9,6 +9,7 @@ module.exports = {
         auto: true,
         interval: 3000
       },
+      chainId: 1337
     }
   }
 };

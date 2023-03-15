@@ -117,6 +117,7 @@ contract LendingFactory is Receipt, Offer, Ownable {
         uint256 currentOffer = offerOrder[_requestNumber];
         ReceiptDetail storage rd = receiptBook[_requestNumber];
         require(rd.vendor != address(0), "Lending: receipt must exist");
+        require(rd.tokenAmount == 0, "Lending: receipt must still available");
         require(
             _amountOfTime / _paymentTime >= 7 days && _amountOfTime < 30 days,
             "Lending: offer time and payment time are not valid"
@@ -207,7 +208,9 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         uint256 startTime = rd.deadLine - rd.amountOfTime;
         uint256 duration = rd.amountOfTime / rd.paymentTime;
         uint256 checker = (block.timestamp - startTime) / duration;
-        require(rd.paymentCount < rd.paymentCount, "Lending: Paid done");
+        console.log(rd.paymentTime);
+        console.log(rd.paymentCount);
+        require(rd.paymentTime != rd.paymentCount, "Lending: Paid done");
         require(rd.paymentCount >= checker, "Lending: Request time out");
 
         uint256 tokenMustPaid = getTokenMustPaidPerTime(_requestNumber);
@@ -224,13 +227,6 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         console.log("rd.paymentCount", rd.paymentCount);
         emit VendorPayRountine(_requestNumber, rd.paymentCount);
     }
-
-    // function vendorRedeem(uint256 _requestNumber) public {
-    //     ReceiptDetail memory rd = receiptBook[_requestNumber];
-    //     require(rd.paymentCount == rd.paymentCount, "Lending: Paid not done");
-    //     withdrawNFT(_requestNumber, rd.vendor);
-    //     emit VendorReddem(_requestNumber);
-    // }
 
     function withdrawNFT(uint256 _requestNumber) public {
         ReceiptDetail memory rd = getReceiptBook(_requestNumber);
