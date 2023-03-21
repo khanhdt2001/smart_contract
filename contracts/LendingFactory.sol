@@ -265,4 +265,18 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         registerNFTs[address(_NFTAddress)] = false;
         emit UnRegisterNFT(address(_NFTAddress));
     }
+
+    function getAddressBalance(
+        address checker
+    ) public view returns (uint256) {
+        return addressBalance[checker];
+    }
+
+    function withdrawEth(uint256 token) public payable {
+        uint256 balance = addressBalance[msg.sender];
+        require(balance >= token, "Invalid eth amount");
+        address payable to = payable(msg.sender);
+        to.transfer(token);
+        addressBalance[msg.sender] = balance - token;
+    }
 }
