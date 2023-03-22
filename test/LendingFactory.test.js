@@ -55,7 +55,7 @@ describe("LendingFactory", function () {
             .connect(address2)
             .lenderMakeOffer(0, 12, 1814400, 3, { value: ethToSend });
     };
-
+    
     const setUpForVendorPayRountine = async () => {
         await setUpForVendorAcceptOffer();
         await Nft.connect(address1).approve(lendingFactory.address, 1);
@@ -89,5 +89,21 @@ describe("LendingFactory", function () {
     const setUpForVendorRedeem = async () => {
       await setUpForVendorPayRountine()
     }
-
+    describe("depositEth", ()=>{
+        it("success", async () => {
+            const res = await lendingFactory
+            .connect(address1)
+            .depositEth({ value: 100 });
+        })
+    })
+    describe("withdrawEth", ()=>{
+        it("success", async () => {
+            await lendingFactory
+            .connect(address1)
+            .depositEth({ value: 100 });
+            const res = await lendingFactory
+            .connect(address1)
+            .withdrawEth(10);
+        })
+    })
 });

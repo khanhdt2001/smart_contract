@@ -273,10 +273,15 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
     }
 
     function withdrawEth(uint256 token) public payable {
+        console.log(addressBalance[msg.sender]);
+
         uint256 balance = addressBalance[msg.sender];
         require(balance >= token, "Invalid eth amount");
-        address payable to = payable(msg.sender);
-        to.transfer(token);
+        payable(msg.sender).transfer(token);
         addressBalance[msg.sender] = balance - token;
+        console.log(addressBalance[msg.sender]);
+    }
+    function depositEth() public payable {
+        addressBalance[msg.sender] += msg.value;   
     }
 }
