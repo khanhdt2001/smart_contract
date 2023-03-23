@@ -247,6 +247,7 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
                 "Lending: Request on time"
             );
         }
+        nftStatus[rd.NFTAddress][rd.vendor][rd.tokenId] = false;
         nft.transferFrom(address(this), msg.sender, rd.tokenId);
         emit WithDrawNFT(_requestNumber, msg.sender);
     }
