@@ -208,28 +208,24 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         uint256 startTime = rd.deadLine - rd.amountOfTime;
         uint256 duration = rd.amountOfTime / rd.paymentTime;
         uint256 checker = (block.timestamp - startTime) / duration;
-        console.log(rd.paymentTime);
-        console.log(rd.paymentCount);
+
         require(rd.paymentTime != rd.paymentCount, "Lending: Paid done");
         require(rd.paymentCount >= checker, "Lending: Request time out");
 
         uint256 tokenMustPaid = getTokenMustPaidPerTime(_requestNumber);
         require(msg.value >= tokenMustPaid, "Lending: Not enough eth");
         addressBalance[msg.sender] += msg.value - tokenMustPaid;
-        console.log("tokenAmount", rd.tokenAmount);
-        console.log(" addressBalance[msg.sender]", addressBalance[msg.sender]);
 
-        console.log("tokenMustPaid", tokenMustPaid);
+
         address payable to = payable(rd.lender);
         to.transfer(tokenMustPaid);
 
         rd.paymentCount++;
-        console.log("rd.paymentCount", rd.paymentCount);
         emit VendorPayRountine(_requestNumber, rd.paymentCount);
     }
 
     function withdrawNFT(uint256 _requestNumber) public {
-        ReceiptDetail memory rd = getReceiptBook(_requestNumber);
+        ReceiptDetail storage rd = receiptBook[_requestNumber];
         ERC721 nft = ERC721(rd.NFTAddress);
 
         require(
@@ -267,22 +263,37 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         emit UnRegisterNFT(address(_NFTAddress));
     }
 
-    function getAddressBalance(
-        address checker
-    ) public view returns (uint256) {
+    function getAddressBalance(address checker) public view returns (uint256) {
         return addressBalance[checker];
     }
 
     function withdrawEth(uint256 token) public payable {
-        console.log(addressBalance[msg.sender]);
 
         uint256 balance = addressBalance[msg.sender];
         require(balance >= token, "Invalid eth amount");
         payable(msg.sender).transfer(token);
         addressBalance[msg.sender] = balance - token;
-        console.log(addressBalance[msg.sender]);
     }
+
     function depositEth() public payable {
-        addressBalance[msg.sender] += msg.value;   
+        addressBalance[msg.sender] += msg.value;
+    }
+
+    function checkAbleToWithDrawNft(
+        uint256 _requestNumber
+    ) public view returns (bool) {
+        ReceiptDetail storage rd = receiptBook[_requestNumber];
+         if (msg.sender == rd.lender) {
+            uint256 startTime = rd.deadLine - rd.amountOfTime;
+            uint256 duration = rd.amountOfTime / rd.paymentTime;
+            uint256 checker = (block.timestamp - startTime) / duration;
+            require(rd.paymentCount < checker, "Lending: Request lender on time");
+        } else {
+            require(
+                rd.paymentCount == rd.paymentTime,
+                "Lending: Request vendor on time"
+            );
+        }
+        return true;
     }
 }

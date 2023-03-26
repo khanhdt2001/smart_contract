@@ -1,7 +1,7 @@
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 async function main() {
     // Our code will go here
-    await time.increase(1036800);
+    await time.increase(2236800);
 }
 
 main()
