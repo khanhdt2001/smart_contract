@@ -12,13 +12,13 @@ async function main() {
 
 
    const lend = await Lend.attach("0x5fbdb2315678afecb367f032d93f642f64180aa3");
-   const nft = await Nft.attach("0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d");
+   const nft = await Nft.attach("0xb47e3cd837ddf8e4c57f05d70ab865de6e193bbb");
    await nft.connect(singerAdmin).mint(address1)
 
 
    const res = await nft.ownerOf(0);
    await nft.connect(signer1).approve("0x5fbdb2315678afecb367f032d93f642f64180aa3", 0)
-   await lend.connect(signer1).vendorMakeRequest("0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d", 0)
+   await lend.connect(signer1).vendorMakeRequest("0xb47e3cd837ddf8e4c57f05d70ab865de6e193bbb", 0)
    console.log(res);
    console.log(address1);
 }
