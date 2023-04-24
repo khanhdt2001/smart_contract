@@ -213,6 +213,9 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         require(rd.paymentCount >= checker, "Lending: Request time out");
 
         uint256 tokenMustPaid = getTokenMustPaidPerTime(_requestNumber);
+        console.log("tokenMustPaid", tokenMustPaid);
+        console.log("msg.value", msg.value);
+
         require(msg.value >= tokenMustPaid, "Lending: Not enough eth");
         addressBalance[msg.sender] += msg.value - tokenMustPaid;
 
@@ -256,9 +259,10 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
 
     function unRegisterNFT(ERC721 _NFTAddress) public onlyOwner {
         require(
-            registerNFTs[address(_NFTAddress)] != true,
+            registerNFTs[address(_NFTAddress)] == true,
             "Already un-registor"
         );
+        // console.log(registerNFTs[address(_NFTAddress)]);
         registerNFTs[address(_NFTAddress)] = false;
         emit UnRegisterNFT(address(_NFTAddress));
     }
