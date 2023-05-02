@@ -360,7 +360,7 @@ describe("LendingFactory", function () {
         await lendingFactory.connect(address1).vendorAcceptOffer(0, 0);
     };
 
-    describe.only("function vendorPayRountine", () => {
+    describe("function vendorPayRountine", () => {
         it("should fail with Lending: Not enough eth", async () => {
             await setUpForVendorPayRountine();
             const ethToSend = ethers.utils.parseEther("1.0");
@@ -388,6 +388,90 @@ describe("LendingFactory", function () {
                     .connect(address1)
                     .vendorPayRountine(0, { value: ethToSend })
             ).to.be.revertedWith("Lending: Request time out");
-        })
+        });
+        it("should fail with Lending: Paid done", async () => {
+            await setUpForVendorPayRountine();
+            const ethToSend = ethers.utils.parseEther("10.0");
+            await lendingFactory
+                .connect(address1)
+                .vendorPayRountine(0, { value: ethToSend });
+            await lendingFactory
+                .connect(address1)
+                .vendorPayRountine(0, { value: ethToSend });
+            await lendingFactory
+                .connect(address1)
+                .vendorPayRountine(0, { value: ethToSend });
+            await expect(
+                lendingFactory
+                    .connect(address1)
+                    .vendorPayRountine(0, { value: ethToSend })
+            ).to.be.revertedWith("Lending: Paid done");
+        });
+        it("should pass", async () => {
+            await setUpForVendorPayRountine();
+            const ethToSend = ethers.utils.parseEther("10.0");
+            const res = await lendingFactory
+                .connect(address1)
+                .vendorPayRountine(0, { value: ethToSend });
+            await expect(res).to.emit(lendingFactory, "VendorPayRountine");
+        });
+        it("should pass", async () => {
+            await setUpForVendorPayRountine();
+            const ethToSend = ethers.utils.parseEther("10.0");
+            await lendingFactory
+                .connect(address1)
+                .vendorPayRountine(0, { value: ethToSend });
+            const res = await lendingFactory
+                .connect(address1)
+                .vendorPayRountine(0, { value: ethToSend });
+            await expect(res).to.emit(lendingFactory, "VendorPayRountine");
+        });
+    });
+    describe("function withdrawNFT", () => {
+        it("should fail with Lending: not able to access", async () => {
+            await setUpForVendorPayRountine();
+            await expect(lendingFactory.withdrawNFT(0)).to.be.revertedWith(
+                "Lending: not able to access"
+            );
+        });
+        it("should fail with Lending: Request on time || lender site", async () => {
+            await setUpForVendorPayRountine();
+            await expect(
+                lendingFactory.connect(address2).withdrawNFT(0)
+            ).to.be.revertedWith("Lending: Request on time");
+        });
+        it("should fail with Lending: Request on time || vendor site", async () => {
+            await setUpForVendorPayRountine();
+            await expect(
+                lendingFactory.connect(address1).withdrawNFT(0)
+            ).to.be.revertedWith("Lending: Request on time");
+        });
+        it("should pass || vendor site", async () => {
+            await setUpForVendorPayRountine();
+            const ethToSend = ethers.utils.parseEther("10.0");
+            await lendingFactory
+                .connect(address1)
+                .vendorPayRountine(0, { value: ethToSend });
+            await lendingFactory
+                .connect(address1)
+                .vendorPayRountine(0, { value: ethToSend });
+            await lendingFactory
+                .connect(address1)
+                .vendorPayRountine(0, { value: ethToSend });
+
+            const res = await lendingFactory.connect(address1).withdrawNFT(0);
+            await expect(res).to.emit(lendingFactory, "WithDrawNFT");
+        });
+        it("should pass || lender site", async () => {
+            await setUpForVendorPayRountine();
+            const ethToSend = ethers.utils.parseEther("10.0");
+            await lendingFactory
+                .connect(address1)
+                .vendorPayRountine(0, { value: ethToSend });
+
+            await ethers.provider.send("evm_increaseTime", [12273800]);
+            const res = await lendingFactory.connect(address2).withdrawNFT(0);
+            await expect(res).to.emit(lendingFactory, "WithDrawNFT");
+        });
     });
 });

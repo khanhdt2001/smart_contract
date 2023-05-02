@@ -213,8 +213,7 @@ A has to paid B 1 month = 100.000.000/12 + 1.000.000 = 9.333.333
         require(rd.paymentCount >= checker, "Lending: Request time out");
 
         uint256 tokenMustPaid = getTokenMustPaidPerTime(_requestNumber);
-        console.log("tokenMustPaid", tokenMustPaid);
-        console.log("msg.value", msg.value);
+
 
         require(msg.value >= tokenMustPaid, "Lending: Not enough eth");
         addressBalance[msg.sender] += msg.value - tokenMustPaid;
